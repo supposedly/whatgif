@@ -2,7 +2,7 @@ import setuptools
 import re
 
 VERSION = None
-with open('nutshell/__init__.py') as f:
+with open('whatgif/__init__.py') as f:
     VERSION = re.search(r"^__version__\s*=\s*'(\d+\.\d+\.\d+\w*)'", f.read(), re.MULTILINE).group(1)
 
 if VERSION is None:

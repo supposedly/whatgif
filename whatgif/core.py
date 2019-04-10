@@ -18,6 +18,8 @@ class GIF(MutableSequence):
         return self.images.__getitem__(idx)
     
     def __setitem__(self, idx, value):
+        if not isinstance(value, Frame):
+            value = self.create_frame(value)
         self.images.__setitem__(idx, value)
     
     def __delitem__(self, idx):
@@ -28,8 +30,17 @@ class GIF(MutableSequence):
     
     def insert(self, idx, value):
         self.images.insert(idx, value)
+    
+    def create_frame(self, pixels):
+        return Frame(pixels, self)
 
 
 class Frame:
-    def __init__(self, ndarray):
-        ...
+    def __init__(self, pixels, gif):
+        if not isinstance(pixels, np.ndarray):
+            pixels = np.array(pixels)
+        self.data = pixels
+        self.colors = set(self.data.flat)
+        self.gif = gif
+    
+

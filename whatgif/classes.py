@@ -1,5 +1,5 @@
 import struct
-from collections.abc import MutableMapping
+from collections.abc import MutableSequence
 from itertools import repeat
 
 from . import misc
@@ -112,39 +112,36 @@ class LogicalScreenDescriptor:
         )
 
 
-class ColorTable(MutableMapping):
+class ColorTable(MutableSequence):
     def __init__(self, iterable=()):
-        self._d = {}
-        self.update(iterable)
+        self._li = []
+        self.extend(iterable)
     
     def __bytes__(self):
-        return bytes([component for k in range(len(self)) for component in self[k]])
+        return bytes([component for rgb in self for component in rgb])
     
-    def __contains__(self, key):
-        return self._d.__contains__(key) or 0 <= key < len(self)
-    
-    def __getitem__(self, key):
-        if key not in self._d and key in self:
+    def __getitem__(self, idx):
+        if idx >= len(self._li) and idx < len(self):
             return (0, 0, 0)
-        return self._d.__getitem__(key)
+        return self._li.__getitem__(idx)
     
-    def __setitem__(self, key, value):
+    def __setitem__(self, idx, value):
         if len(value) != 3 or not (0, 0, 0) <= value < (256, 256, 256):
-            raise ValueError('GCT values must be a single-byte-each RGB tuple')
-        self._d.__setitem__(key, value)
+            raise ValueError('Color-table values must be a single-byte-each RGB tuple')
+        self._li.__setitem__(idx, value)
     
-    def __delitem__(self, key):
-        if key in self._d:
-            self._d.__delitem__(key)
-    
-    def __iter__(self):
-        yield from range(len(self))
+    def __delitem__(self, idx):
+        if idx < len(self._li):
+            self._li.__delitem__(idx)
     
     def __len__(self):
-        return misc.next_po2(1 + len(self._d))
+        underlying = len(self._li)
+        return underlying if misc.is_po2(underlying) else misc.next_po2(1 + underlying)
     
-    def values(self):
-        return {**dict(zip(self, repeat((0, 0, 0)))), **self._d}.values()
+    def insert(self, idx, value):
+        if len(value) != 3 or not (0, 0, 0) <= value < (256, 256, 256):
+            raise ValueError('Color-table values must be a single-byte-each RGB tuple')
+        return self._li.insert(idx, value)
 
 
 class Extension:
