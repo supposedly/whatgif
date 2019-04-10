@@ -17,5 +17,6 @@ setuptools.setup(
   include_package_data=True,
   url='https://github.com/supposedly/whatgif',
   description='Python GIF-creation stuff',
-  python_requires='>=3.3'
+  python_requires='>=3.3',
+  install_requires=['numpy'],
 )
