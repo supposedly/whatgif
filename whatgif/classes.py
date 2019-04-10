@@ -33,7 +33,7 @@ class TableColorField:
 
     def __int__(self):
         return int(''.join(map(str, [
-          int(self.global_color_table),
+          int(self.has_global_color_table),
           *map(int, bin(self.color_resolution)[2:].zfill(3)),
           int(self.sort),
           *map(int, bin(self.size)[2:].zfill(3))
@@ -106,7 +106,7 @@ class LogicalScreenDescriptor:
           '<HHBBB',
           self.canvas_width,
           self.canvas_height,
-          self.color_field,
+          int(self.color_field),
           self.background_color_index,
           self.pixel_aspect_ratio
         )
@@ -129,7 +129,7 @@ class ColorTable(MutableMapping):
         return self._d.__getitem__(key)
     
     def __setitem__(self, key, value):
-        if len(values) != 3 or not (0, 0, 0) <= value < (256, 256, 256):
+        if len(value) != 3 or not (0, 0, 0) <= value < (256, 256, 256):
             raise ValueError('GCT values must be a single-byte-each RGB tuple')
         self._d.__setitem__(key, value)
     
@@ -138,8 +138,7 @@ class ColorTable(MutableMapping):
             self._d.__delitem__(key)
     
     def __iter__(self):
-        yield from self._d
-        yield from range(len(self._d), len(self))
+        yield from range(len(self))
     
     def __len__(self):
         return misc.next_po2(1 + len(self._d))
@@ -157,7 +156,7 @@ class Extension:
 
 
 class GraphicsControlExtension(Extension):
-    LABEL = '\xf9'
+    LABEL = b'\xf9'
     
     def __init__(self, delay_time, transparent_color_index):
         self.field = GraphicsControlField()
@@ -167,9 +166,7 @@ class GraphicsControlExtension(Extension):
     def __bytes__(self):
         return super().__bytes__() + (
           b'\x04'  # XXX: not sure if this should change
-          + struct.pack('B', int(self.field))
-          + self.delay_time
-          + self.transparent_color_index
+          + struct.pack('BBB', int(self.field), self.delay_time, self.transparent_color_index)
           + b'\x00'
         )
 
@@ -188,7 +185,7 @@ class ImageDescriptor:
         self.height = height
         self.left = left
         self.top = top
-        self.field = ImageColorField()
+        self.color_field = ImageColorField()
     
     def __bytes__(self):
         return struct.pack(
@@ -198,7 +195,7 @@ class ImageDescriptor:
           self.top,
           self.width,
           self.height,
-          int(self.field)
+          int(self.color_field)
         )
 
 
