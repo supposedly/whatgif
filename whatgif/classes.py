@@ -138,6 +138,13 @@ class ColorTable(MutableSequence):
         underlying = len(self._li)
         return underlying if misc.is_po2(underlying) else misc.next_po2(1 + underlying)
     
+    @property
+    def underlying(self):
+        yield from self._li
+    
+    def underlying_length(self):
+        return len(self._li)
+    
     def insert(self, idx, value):
         if len(value) != 3 or not (0, 0, 0) <= value < (256, 256, 256):
             raise ValueError('Color-table values must be a single-byte-each RGB tuple')

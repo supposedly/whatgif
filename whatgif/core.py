@@ -39,8 +39,20 @@ class Frame:
     def __init__(self, pixels, gif):
         if not isinstance(pixels, np.ndarray):
             pixels = np.array(pixels)
+        self.image_descriptor = aux.ImageDescriptor(*pixels.shape[:2])
         self.data = pixels
         self.colors = set(self.data.flat)
         self.gif = gif
+    
+    def __bytes__(self):
+        ...
+    
+    def update_color_table(self):
+        self.gif.global_color_table.extend(
+          self.colors.difference(self.gif.global_color_table)
+        )
+    
+    def compress(self):
+        ...
     
 
