@@ -4,14 +4,14 @@ from collections.abc import MutableSequence
 
 import numpy as np
 
-from . import classes as aux
+from . import classes
 
 
 class GIF(MutableSequence):
     def __init__(self, version='89a', width=None, height=None):
-        self.header = aux.Header(version)
-        self.logical_screen_descriptor = aux.LogicalScreenDescriptor(width, height)
-        self.global_color_table = aux.ColorTable()
+        self.header = classes.Header(version)
+        self.logical_screen_descriptor = classes.LogicalScreenDescriptor(width, height)
+        self.global_color_table = classes.ColorTable()
         self.images = []
     
     def __getitem__(self, idx):
@@ -39,7 +39,7 @@ class Frame:
     def __init__(self, pixels, gif):
         if not isinstance(pixels, np.ndarray):
             pixels = np.array(pixels)
-        self.image_descriptor = aux.ImageDescriptor(*pixels.shape[:2])
+        self.image_descriptor = classes.ImageDescriptor(*pixels.shape[:2])
         self.data = pixels
         self.colors = set(self.data.flat)
         self.gif = gif

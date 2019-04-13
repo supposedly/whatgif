@@ -145,6 +145,10 @@ class ColorTable(MutableSequence):
     def underlying_length(self):
         return len(self._li)
     
+    def size(self):
+        # invariant: length == 2 ** (size + 1)
+        return len(self).bit_length() - 2
+    
     def insert(self, idx, value):
         if len(value) != 3 or not (0, 0, 0) <= value < (256, 256, 256):
             raise ValueError('Color-table values must be a single-byte-each RGB tuple')
@@ -203,14 +207,13 @@ class ImageDescriptor:
         )
 
 
-
 class ApplicationExtension(Extension):
     LABEL = b'\xff'
     IDENTIFIER = b'NETSCAPE'
     AUTH_CODE = b'2.0'
-
+    
     __slots__ = 'loop_count',
-
+    
     def __init__(self, loop_count=0):
         self.loop_count = loop_count
     
