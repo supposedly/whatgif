@@ -33,13 +33,15 @@ class CodeTable:
 
     def __init__(self, color_table):
         self._d = {}
-        self.min_code_size = max(self.MAX_CODE_SIZE, 1 + color_table.size())
+        self.min_code_size = min(self.MAX_CODE_SIZE, 1 + color_table.size())
         self._code_size = self._first_code_size = 1 + self.min_code_size
         self._max_code = 2 ** self.min_code_size - 1
-        self.clear = 1 + self._max_code
-        self.eoi = 1 + self.clear
-        self._cur_code = 0
+        self._clear = 1 + self._max_code
+        self._eoi = 1 + self._clear
+        self._cur_code = 1 + self._eoi
         self._codes_used = set()
+        for color_code in range(self._cur_code):
+            self[color_code,] = color_code
         self.out = BitStream()
     
     def __contains__(self, key):
@@ -54,25 +56,33 @@ class CodeTable:
     
     def add(self, indices):
         self[indices] = self._cur_code
-        self._codes_used.add(self._cur_code)
-        self._cur_code += 1
+        while self._cur_code in self._codes_used:
+            self._cur_code += 1
     
     def output(self, indices):
         code = self[indices]
         self.out.append(code, self._code_size)
         if code.bit_length() == self._code_size:
             if self._code_size == self.MAX_CODE_SIZE:
-                self.out.append(self.clear, self._code_size)
+                self.clear()
                 self._code_size = self._first_code_size
             else:
                 self._code_size += 1
+    
+    def clear(self):
+        self.out.append(self._clear, self._code_size)
+    
+    def eoi(self):
+        self.out.append(self._eoi, self._code_size)
 
 
-def compress(data, color_table, color_indices):
-    code_table = CodeTable(color_table)
+def compress(color_indices, color_table, code_table=None):
+    if code_table is None:
+        code_table = CodeTable(color_table)
     # XXX: all this tuple stuff feels really inefficient
     idx_stream = iter(color_indices)
     idx_buffer = next(idx_stream),
+    code_table.clear()
     for k in idx_stream:
         if (*idx_buffer, k) in code_table:
             idx_buffer += k,
@@ -81,5 +91,5 @@ def compress(data, color_table, color_indices):
         code_table.output(idx_buffer)
         idx_buffer = k,
     code_table.output(idx_buffer)
-    code_table.output(code_table.eoi)
+    code_table.eoi()
     return bytes(code_table.out)
