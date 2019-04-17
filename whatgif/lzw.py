@@ -33,7 +33,7 @@ class CodeTable:
 
     def __init__(self, color_table):
         self._d = {}
-        self.min_code_size = min(self.MAX_CODE_SIZE, 1 + color_table.size())
+        self.min_code_size = max(2, min(self.MAX_CODE_SIZE, 1 + color_table.size()))
         self._code_size = self._first_code_size = 1 + self.min_code_size
         self._max_code = 2 ** self.min_code_size - 1
         self._clear = 1 + self._max_code
@@ -52,6 +52,12 @@ class CodeTable:
     
     def __setitem__(self, key, value):
         self._codes_used.add(value)
+        if value == 2 ** self._code_size:
+            if self._code_size == self.MAX_CODE_SIZE:
+                self.clear()
+                self._code_size = self._first_code_size
+            else:
+                self._code_size += 1
         self._d.__setitem__(key, value)
     
     def add(self, indices):
@@ -62,12 +68,6 @@ class CodeTable:
     def output(self, indices):
         code = self[indices]
         self.out.append(code, self._code_size)
-        if code.bit_length() == self._code_size:
-            if self._code_size == self.MAX_CODE_SIZE:
-                self.clear()
-                self._code_size = self._first_code_size
-            else:
-                self._code_size += 1
     
     def clear(self):
         self.out.append(self._clear, self._code_size)
@@ -87,8 +87,8 @@ def compress(color_indices, color_table, code_table=None):
         if (*idx_buffer, k) in code_table:
             idx_buffer += k,
             continue
-        code_table.add((*idx_buffer, k))
         code_table.output(idx_buffer)
+        code_table.add((*idx_buffer, k))
         idx_buffer = k,
     code_table.output(idx_buffer)
     code_table.eoi()
