@@ -114,6 +114,7 @@ class LogicalScreenDescriptor:
 
 class ColorTable:
     def __init__(self, iterable=()):
+        self._ensure_transparent = False
         self._od = OrderedDict()
         self._len = count()
         self.extend(iterable)
@@ -130,8 +131,7 @@ class ColorTable:
             yield (0, 0, 0)
     
     def __len__(self):
-        underlying = self.underlying_length()
-        return underlying if misc.is_po2(underlying) else misc.next_po2(1 + underlying)
+        return 2 ** (1 + self.size())
     
     def append(self, value):
         if len(value) != 3 or not (0, 0, 0) <= value < (256, 256, 256):
@@ -144,16 +144,35 @@ class ColorTable:
         for v in list(values) if values is self else values:
             self.append(v)
     
+    def _length(self):
+        underlying = self.underlying_length()
+        return underlying if misc.is_po2(underlying) else misc.next_po2(1 + underlying)
+    
+    @property
+    def _size_offset(self):
+        return self._ensure_transparent and self.underlying_length() == len(self)
+    
+    @property
+    def transparent_color_index(self):
+        return len(self) - 1
+    
     @property
     def underlying(self):
-        yield from self._od
+        for v in self._od:
+            if v is not ColorTable.TRANSPARENT:
+                yield v
     
     def underlying_length(self):
         return len(self._od)
     
     def size(self):
-        # invariant: length == 2 ** (size + 1)
-        return len(self).bit_length() - 2
+        # self._length() == (2 ** size + 1)
+        # _size_offset is there to ensure there will be a transparent color
+        # which is accounted for by __len__()
+        return self._length().bit_length() - 2 + self._size_offset
+    
+    def ensure_transparent_color(self):
+        self._ensure_transparent = True
 
 
 class Extension:
