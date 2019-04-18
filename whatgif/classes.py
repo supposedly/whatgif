@@ -131,7 +131,7 @@ class ColorTable:
             yield (0, 0, 0)
     
     def __len__(self):
-        return 2 ** (1 + self.size())
+        return int(2 ** (1 + self.size()))
     
     def append(self, value):
         if len(value) != 3 or not (0, 0, 0) <= value < (256, 256, 256):
@@ -150,7 +150,7 @@ class ColorTable:
     
     @property
     def _size_offset(self):
-        return self._ensure_transparent and self.underlying_length() == len(self)
+        return int(self._ensure_transparent and self.underlying_length() == len(self))
     
     @property
     def transparent_color_index(self):
@@ -158,9 +158,7 @@ class ColorTable:
     
     @property
     def underlying(self):
-        for v in self._od:
-            if v is not ColorTable.TRANSPARENT:
-                yield v
+        yield from self._od
     
     def underlying_length(self):
         return len(self._od)
