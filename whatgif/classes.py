@@ -116,14 +116,17 @@ class ColorTable:
     def __init__(self, iterable=()):
         self._ensure_transparent = False
         self._od = OrderedDict()
+        self._li = []
         self._len = count()
         self.extend(iterable)
     
     def __bytes__(self):
         return bytes([component for rgb in self for component in rgb])
     
-    def __getitem__(self, color):
-        return self._od.__getitem__(color)
+    def __getitem__(self, value):
+        if isinstance(value, int):
+            return self._li.__getitem__(value)
+        return self._od.__getitem__(value)
     
     def __iter__(self):
         yield from self.underlying
@@ -133,15 +136,16 @@ class ColorTable:
     def __len__(self):
         return int(2 ** (1 + self.size()))
     
-    def append(self, value):
-        if len(value) != 3 or not (0, 0, 0) <= value < (256, 256, 256):
+    def append(self, color):
+        if len(color) != 3 or not (0, 0, 0) <= color < (256, 256, 256):
             raise ValueError('Color-table values must be a single-byte-each RGB tuple')
-        if value in self:
-            raise ValueError('RGB tuple {} already exists in color table with code {}'.format(value, self[value]))
-        self._od[value] = next(self._len)
+        if color in self:
+            raise ValueError('RGB tuple {} already exists in color table with code {}'.format(color, self[color]))
+        self._od[color] = next(self._len)
+        self._li.append(color)
     
-    def extend(self, values):
-        for v in list(values) if values is self else values:
+    def extend(self, colors):
+        for v in list(colors) if colors is self else colors:
             self.append(v)
     
     def _length(self):
@@ -157,10 +161,11 @@ class ColorTable:
         return len(self) - 1
     
     @property
-    def underlying(self):
+    def underlying(self):len
         yield from self._od
     
     def underlying_length(self):
+        assert len(self._od) == len(self._li)
         return len(self._od)
     
     def size(self):

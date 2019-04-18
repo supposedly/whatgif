@@ -4,7 +4,7 @@ from collections.abc import MutableSequence
 
 import numpy as np
 
-from . import classes
+from . import classes, lzw
 
 
 class GIF(MutableSequence):
@@ -36,21 +36,27 @@ class GIF(MutableSequence):
 
 
 class Frame:
-    def __init__(self, pixels, gif, color_table=None):
+    def __init__(self, pixels, gif, *, color_table=None, color_indices=None):
         if not isinstance(pixels, np.ndarray):
             pixels = np.array(pixels)
         if color_table is None:
             color_table = gif.global_color_table
         self.color_table = color_table
-        self.image_descriptor = classes.ImageDescriptor(*pixels.shape[:2])
-        self.data = np.vectorize(self.color_table.__getitem__)(pixels)
-        self.colors = set(pixels.flat)
+        self.pixels = pixels
+        self.color_indices = np.apply_along_axis(
+          lambda color: self.color_table[tuple(color)],
+          2,
+          pixels
+          ) if color_indices is None else color_indices
+        self.image_descriptor = classes.ImageDescriptor(*self.color_indices.shape)
+        self.colors = set(self.pixels.flat)
         self.gif = gif
     
     def __imod__(self, other):
         if not isinstance(other, Frame):
             return NotImplemented
-        self.data[self == other] = 0
+        self.color_indices[self == other] = 0
+        # XXX: change left & top attributes to cull zeroes
         return self
     
     def __bytes__(self):
@@ -62,6 +68,7 @@ class Frame:
         )
     
     def compress(self):
-        ...
-    
-
+        data = lzw.compress(self.data.flat, self.color_table)
+        # XXX: does the data even need to be 2D after height/width are determined??
+        # TODO XXX: what to do with compressed data
+        raise NotImplementedError
