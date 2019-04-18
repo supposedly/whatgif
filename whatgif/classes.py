@@ -1,6 +1,6 @@
 import struct
-from collections.abc import MutableSequence
-from itertools import repeat
+from collections import OrderedDict
+from itertools import count
 
 from . import misc
 
@@ -112,47 +112,48 @@ class LogicalScreenDescriptor:
         )
 
 
-class ColorTable(MutableSequence):
+class ColorTable:
     def __init__(self, iterable=()):
-        self._li = []
+        self._od = OrderedDict()
+        self._len = count()
         self.extend(iterable)
     
     def __bytes__(self):
         return bytes([component for rgb in self for component in rgb])
     
-    def __getitem__(self, idx):
-        if idx >= len(self._li) and idx < len(self):
-            return (0, 0, 0)
-        return self._li.__getitem__(idx)
+    def __getitem__(self, color):
+        return self._od.__getitem__(color)
     
-    def __setitem__(self, idx, value):
-        if len(value) != 3 or not (0, 0, 0) <= value < (256, 256, 256):
-            raise ValueError('Color-table values must be a single-byte-each RGB tuple')
-        self._li.__setitem__(idx, value)
-    
-    def __delitem__(self, idx):
-        if idx < len(self._li):
-            self._li.__delitem__(idx)
+    def __iter__(self):
+        yield from self.underlying
+        for _ in range(self.underlying_length(), len(self)):
+            yield (0, 0, 0)
     
     def __len__(self):
-        underlying = len(self._li)
+        underlying = self.underlying_length()
         return underlying if misc.is_po2(underlying) else misc.next_po2(1 + underlying)
+    
+    def append(self, value):
+        if len(value) != 3 or not (0, 0, 0) <= value < (256, 256, 256):
+            raise ValueError('Color-table values must be a single-byte-each RGB tuple')
+        if value in self:
+            raise ValueError('RGB tuple {} already exists in color table with code {}'.format(value, self[value]))
+        self._od[value] = next(self._len)
+    
+    def extend(self, values):
+        for v in list(values) if values is self else values:
+            self.append(v)
     
     @property
     def underlying(self):
-        yield from self._li
+        yield from self._od
     
     def underlying_length(self):
-        return len(self._li)
+        return len(self._od)
     
     def size(self):
         # invariant: length == 2 ** (size + 1)
         return len(self).bit_length() - 2
-    
-    def insert(self, idx, value):
-        if len(value) != 3 or not (0, 0, 0) <= value < (256, 256, 256):
-            raise ValueError('Color-table values must be a single-byte-each RGB tuple')
-        return self._li.insert(idx, value)
 
 
 class Extension:
