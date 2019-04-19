@@ -167,7 +167,7 @@ class ColorTable:
     
     @property
     def _size_offset(self):
-        return int(self._ensure_transparent and self.underlying_length() == len(self))
+        return int(self._ensure_transparent and self.underlying_length() == self._length())
     
     @property
     def transparent_color_index(self):

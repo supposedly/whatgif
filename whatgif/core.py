@@ -43,32 +43,35 @@ class Frame:
             color_table = gif.global_color_table
         self.color_table = color_table
         self.pixels = pixels
+        self.colors = {tuple(i) for i in self.pixels.reshape((-1, 3))}
+        self.update_color_table()
         self.color_indices = np.apply_along_axis(
           lambda color: self.color_table[tuple(color)],
           2,
           pixels
           ) if color_indices is None else color_indices
         self.image_descriptor = classes.ImageDescriptor(*self.color_indices.shape)
-        self.colors = set(self.pixels.flat)
         self.gif = gif
     
     def __eq__(self, other):
         if not isinstance(other, Frame):
             return NotImplemented
-        return self.color_indices == other.color_indices
+        return (self.pixels == other.pixels).all(2)
     
     def __imod__(self, other):
         if not isinstance(other, Frame):
             return NotImplemented
+        # TODO: use self.pixels and classes.ColorTable.TRANSPARENT here instead
         transparent = self.color_table.transparent_color_index
         self.color_indices[self == other] = transparent
         eq = self.color_indices == transparent
         # argmin() gets the first False value's index,
         # aka the number of starting Trues to erase
-        rows, cols = eq.all(0).argmin(), eq.all(1).argmin()
+        cols, rows = eq.all(0).argmin(), eq.all(1).argmin()
         self.color_indices = self.color_indices[rows:, cols:]
-        self.image_descriptor.top = rows
+        self.pixels = self.pixels[rows:, cols:]
         self.image_descriptor.left = cols
+        self.image_descriptor.top = rows
         return self
     
     def __bytes__(self):
