@@ -113,6 +113,8 @@ class LogicalScreenDescriptor:
 
 
 class ColorTable:
+    TRANSPARENT = object()
+
     def __init__(self, iterable=()):
         self._ensure_transparent = False
         self._od = OrderedDict()
@@ -125,7 +127,13 @@ class ColorTable:
     
     def __getitem__(self, value):
         if isinstance(value, int):
+            if value == -1:
+                return ColorTable.TRANSPARENT
+            elif value < 0:
+                raise ValueError('ColorTables do not hold negative indices such as {}'.format(value))
             return self._li.__getitem__(value)
+        if value is ColorTable.TRANSPARENT:
+            return -1
         return self._od.__getitem__(value)
     
     def __iter__(self):
@@ -137,10 +145,15 @@ class ColorTable:
         return int(2 ** (1 + self.size()))
     
     def append(self, color):
+        if color is ColorTable.TRANSPARENT:
+            self.ensure_transparent_color()
+            return
         if len(color) != 3 or not (0, 0, 0) <= color < (256, 256, 256):
             raise ValueError('Color-table values must be a single-byte-each RGB tuple')
         if color in self:
-            raise ValueError('RGB tuple {} already exists in color table with code {}'.format(color, self[color]))
+            raise ValueError('Color {} already exists with code {}'.format(
+              color, self[color]
+            ))
         self._od[color] = next(self._len)
         self._li.append(color)
     
@@ -158,10 +171,11 @@ class ColorTable:
     
     @property
     def transparent_color_index(self):
+        self.ensure_transparent_color()
         return len(self) - 1
     
     @property
-    def underlying(self):len
+    def underlying(self):
         yield from self._od
     
     def underlying_length(self):

@@ -55,7 +55,7 @@ class Frame:
     def __imod__(self, other):
         if not isinstance(other, Frame):
             return NotImplemented
-        self.color_indices[self == other] = 0
+        self.color_indices[self == other] = self.color_table.transparent_color_index
         # XXX: change left & top attributes to cull zeroes
         return self
     
