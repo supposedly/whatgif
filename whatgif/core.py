@@ -52,11 +52,23 @@ class Frame:
         self.colors = set(self.pixels.flat)
         self.gif = gif
     
+    def __eq__(self, other):
+        if not isinstance(other, Frame):
+            return NotImplemented
+        return self.color_indices == other.color_indices
+    
     def __imod__(self, other):
         if not isinstance(other, Frame):
             return NotImplemented
-        self.color_indices[self == other] = self.color_table.transparent_color_index
-        # XXX: change left & top attributes to cull zeroes
+        transparent = self.color_table.transparent_color_index
+        self.color_indices[self == other] = transparent
+        eq = self.color_indices == transparent
+        # argmin() gets the first False value's index,
+        # aka the number of starting Trues to erase
+        rows, cols = eq.all(0).argmin(), eq.all(1).argmin()
+        self.color_indices = self.color_indices[rows:, cols:]
+        self.image_descriptor.top = rows
+        self.image_descriptor.left = cols
         return self
     
     def __bytes__(self):
