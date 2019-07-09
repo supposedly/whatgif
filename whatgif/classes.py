@@ -35,14 +35,14 @@ class TableColorField:
         self.color_resolution = color_resolution
         self.sort = sort
         self.size = size
-
+    
     def __int__(self):
-        return int(''.join(map(str, [
-          int(self.has_global_color_table),
-          *map(int, bin(self.color_resolution)[2:].zfill(3)),
-          int(self.sort),
-          *map(int, bin(self.size)[2:].zfill(3))
-        ])), 2)
+        return misc.join_bytes(
+          self.has_global_color_table,
+          *misc.to_bin(self.color_resolution, 3),
+          self.sort,
+          *misc.to_bin(self.size, 3)
+        )
 
 
 class ImageColorField:
@@ -65,13 +65,13 @@ class ImageColorField:
         self.local_color_table_size = local_color_table_size
     
     def __int__(self):
-        return int(''.join(map(str, [
-          int(self.has_local_color_table),
-          int(self.interlace),
-          int(self.sort),
+        return misc.join_bytes(
+          self.has_local_color_table,
+          self.interlace,
+          self.sort,
           0, 0,  # 'reserved for future use'
-          *map(int, bin(self.local_color_table_size)[2:].zfill(3))
-        ])), 2)
+          *misc.to_bin(self.local_color_table_size, 3)
+        )
 
 
 class GraphicsControlField:
@@ -91,12 +91,12 @@ class GraphicsControlField:
         self.has_transparency = has_transparency
     
     def __int__(self):
-        return int(''.join(map(str, [
+        return misc.join_bytes(
           0, 0, 0,  # 'reserved for future use'
-          *map(int, bin(self.disposal_method)[2:].zfill(3)),
-          int(self.wait_for_user_input),
-          int(self.has_transparency)
-        ])), 2)
+          *misc.to_bin(self.disposal_method, 3),
+          self.wait_for_user_input,
+          self.has_transparency
+        )
 
 
 class LogicalScreenDescriptor:
