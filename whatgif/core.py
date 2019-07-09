@@ -8,7 +8,7 @@ from . import classes, lzw
 
 
 class GIF(MutableSequence):
-    def __init__(self, version='89a', width=None, height=None):
+    def __init__(self, version: str = '89a', width: int = None, height: int = None):
         self.header = classes.Header(version)
         self.logical_screen_descriptor = classes.LogicalScreenDescriptor(width, height)
         self.global_color_table = classes.ColorTable()

@@ -8,7 +8,7 @@ from . import misc
 class Header:
     __slots__ = 'version',
 
-    def __init__(self, version=b'89a'):
+    def __init__(self, version: str = b'89a'):
         if version != b'89a':
             raise ValueError('GIF versions other than 89a are unsupported')
         self.version = version
@@ -25,7 +25,12 @@ class TableColorField:
       'size'
     )
 
-    def __init__(self, has_global_color_table=None, color_resolution=None, sort=None, size=None):
+    def __init__(self,
+      has_global_color_table: bool = None,
+      color_resolution: int = None,
+      sort: bool = None,
+      size: int = None
+    ):
         self.has_global_color_table = has_global_color_table
         self.color_resolution = color_resolution
         self.sort = sort
@@ -48,7 +53,12 @@ class ImageColorField:
       'local_color_table_size'
     )
     
-    def __init__(self, has_local_color_table=False, interlace=False, sort=False, local_color_table_size=0):
+    def __init__(self,
+      has_local_color_table: bool = False,
+      interlace: bool = False,
+      sort: bool = False,
+      local_color_table_size: int = 0
+    ):
         self.has_local_color_table = has_local_color_table
         self.interlace = interlace
         self.sort = sort
@@ -71,7 +81,11 @@ class GraphicsControlField:
       'has_transparency'
     )
 
-    def __init__(self, disposal_method=0, wait_for_user_input=False, has_transparency=True):
+    def __init__(self,
+      disposal_method: int = 0,
+      wait_for_user_input: bool = False,
+      has_transparency: bool = True
+    ):
         self.disposal_method = disposal_method
         self.wait_for_user_input = wait_for_user_input
         self.has_transparency = has_transparency
@@ -94,7 +108,13 @@ class LogicalScreenDescriptor:
       'pixel_aspect_ratio'
     )
 
-    def __init__(self, canvas_width=None, canvas_height=None, color_field=None, background_color_index=None, pixel_aspect_ratio=0):
+    def __init__(self,
+      canvas_width: int = None,
+      canvas_height: int = None,
+      color_field: TableColorField = None,
+      background_color_index: int = None,
+      pixel_aspect_ratio: int = 0
+    ):
         self.canvas_width = canvas_width
         self.canvas_height = canvas_height
         self.color_field = TableColorField() if color_field is None else color_field
@@ -102,8 +122,7 @@ class LogicalScreenDescriptor:
         self.pixel_aspect_ratio = pixel_aspect_ratio
     
     def __bytes__(self):
-        return struct.pack(
-          '<HHBBB',
+        return struct.pack('<HHBBB',
           self.canvas_width,
           self.canvas_height,
           int(self.color_field),
@@ -225,7 +244,12 @@ class ImageDescriptor:
       'color_field'
     )
 
-    def __init__(self, width, height, left=0, top=0):
+    def __init__(self,
+      width: int,
+      height: int,
+      left: int = 0,
+      top: int = 0
+    ):
         self.width = width
         self.height = height
         self.left = left
@@ -251,7 +275,7 @@ class ApplicationExtension(Extension):
     
     __slots__ = 'loop_count',
     
-    def __init__(self, loop_count=0):
+    def __init__(self, loop_count: int = 0):
         self.loop_count = loop_count
     
     def __bytes__(self):
