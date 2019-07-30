@@ -1,6 +1,6 @@
 import struct
 from collections import OrderedDict
-from itertools import count
+from itertools import count, repeat
 
 from . import util
 
@@ -157,15 +157,14 @@ class ColorTable:
     
     def __iter__(self):
         yield from self.underlying
-        for _ in range(self.underlying_length(), len(self)):
-            yield (0, 0, 0)
+        yield from repeat((0, 0, 0), len(self) - self.underlying_length())
     
     def __len__(self):
         return int(2 ** (1 + self.size()))
     
     def _length(self):
-        underlying = self.underlying_length()
-        return underlying if util.is_po2(underlying) else util.next_po2(1 + underlying)
+        length = self.underlying_length()
+        return length if util.is_po2(length) else util.next_po2(1 + length)
     
     @property
     def _size_offset(self):
@@ -279,11 +278,12 @@ class ApplicationExtension(Extension):
         self.loop_count = loop_count
     
     def __bytes__(self):
-        return super().__bytes__() + (
-          self.IDENTIFIER + self.AUTH_CODE
-          + b'\x03'  # XXX: unclear whether this should change based on loop_count's bit length
-          + b'\x01'
-          + struct.pack('<H', self.loop_count)
-          + b'\x00'
-        )
-
+        return b''.join([
+          super().__bytes__(),
+          self.IDENTIFIER,
+          self.AUTH_CODE,
+          b'\x03',  # XXX: unclear whether this should change based on loop_count's bit length
+          b'\x01',
+          struct.pack('<H', self.loop_count),
+          b'\x00',
+        ])

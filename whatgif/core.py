@@ -50,7 +50,7 @@ class Frame:
         self.color_table = color_table
         self.color_indices = color_indices
         self.pixels = pixels
-        self.colors = {tuple(i) for i in self.pixels.reshape((-1, 3))}
+        self.colors = set(map(tuple, np.unique(self.pixels.reshape(-1, 3), axis=0)))
         self.update_color_table()
         self.image_descriptor = classes.ImageDescriptor(*self.color_indices.shape)
         self.gif = gif
@@ -80,7 +80,7 @@ class Frame:
     
     def __bytes__(self):
         ...
-
+    
     def update_color_table(self):
         self.color_table.extend(
           self.colors.difference(self.color_table)
