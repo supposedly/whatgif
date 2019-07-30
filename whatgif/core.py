@@ -41,15 +41,17 @@ class Frame:
             pixels = np.array(pixels)
         if color_table is None:
             color_table = gif.global_color_table
+        if color_indices is None:
+            color_indices = np.apply_along_axis(
+              lambda color: color_table[tuple(color)],
+              2,
+              pixels
+            )
         self.color_table = color_table
+        self.color_indices = color_indices
         self.pixels = pixels
         self.colors = {tuple(i) for i in self.pixels.reshape((-1, 3))}
         self.update_color_table()
-        self.color_indices = np.apply_along_axis(
-          lambda color: self.color_table[tuple(color)],
-          2,
-          pixels
-          ) if color_indices is None else color_indices
         self.image_descriptor = classes.ImageDescriptor(*self.color_indices.shape)
         self.gif = gif
     
@@ -58,6 +60,7 @@ class Frame:
             return NotImplemented
         return (self.pixels == other.pixels).all(2)
     
+    '''
     def __imod__(self, other):
         if not isinstance(other, Frame):
             return NotImplemented
@@ -73,10 +76,11 @@ class Frame:
         self.image_descriptor.left = cols
         self.image_descriptor.top = rows
         return self
+    '''
     
     def __bytes__(self):
         ...
-    
+
     def update_color_table(self):
         self.color_table.extend(
           self.colors.difference(self.color_table)

@@ -2,7 +2,7 @@ import struct
 from collections import OrderedDict
 from itertools import count
 
-from . import misc
+from . import util
 
 
 class Header:
@@ -37,11 +37,11 @@ class TableColorField:
         self.size = size
     
     def __int__(self):
-        return misc.join_bytes(
+        return util.join_bits(
           self.has_global_color_table,
-          *misc.to_bin(self.color_resolution, 3),
+          *util.to_bin(self.color_resolution, 3),
           self.sort,
-          *misc.to_bin(self.size, 3)
+          *util.to_bin(self.size, 3)
         )
 
 
@@ -65,12 +65,12 @@ class ImageColorField:
         self.local_color_table_size = local_color_table_size
     
     def __int__(self):
-        return misc.join_bytes(
+        return util.join_bits(
           self.has_local_color_table,
           self.interlace,
           self.sort,
           0, 0,  # 'reserved for future use'
-          *misc.to_bin(self.local_color_table_size, 3)
+          *util.to_bin(self.local_color_table_size, 3)
         )
 
 
@@ -91,9 +91,9 @@ class GraphicsControlField:
         self.has_transparency = has_transparency
     
     def __int__(self):
-        return misc.join_bytes(
+        return util.join_bits(
           0, 0, 0,  # 'reserved for future use'
-          *misc.to_bin(self.disposal_method, 3),
+          *util.to_bin(self.disposal_method, 3),
           self.wait_for_user_input,
           self.has_transparency
         )
@@ -163,6 +163,24 @@ class ColorTable:
     def __len__(self):
         return int(2 ** (1 + self.size()))
     
+    def _length(self):
+        underlying = self.underlying_length()
+        return underlying if util.is_po2(underlying) else util.next_po2(1 + underlying)
+    
+    @property
+    def _size_offset(self):
+        return int(self._ensure_transparent and self.underlying_length() == self._length())
+    
+    def size(self):
+        # self._length() == (2 ** size + 1)
+        # _size_offset is there to ensure there will be a transparent color
+        # which is accounted for by __len__()
+        return self._length().bit_length() - 2 + self._size_offset
+    
+    def underlying_length(self):
+        assert len(self._od) == len(self._li)
+        return len(self._od)
+    
     def append(self, color):
         if color is ColorTable.TRANSPARENT:
             self.ensure_transparent_color()
@@ -180,14 +198,6 @@ class ColorTable:
         for v in list(colors) if colors is self else colors:
             self.append(v)
     
-    def _length(self):
-        underlying = self.underlying_length()
-        return underlying if misc.is_po2(underlying) else misc.next_po2(1 + underlying)
-    
-    @property
-    def _size_offset(self):
-        return int(self._ensure_transparent and self.underlying_length() == self._length())
-    
     @property
     def transparent_color_index(self):
         self.ensure_transparent_color()
@@ -196,16 +206,6 @@ class ColorTable:
     @property
     def underlying(self):
         yield from self._od
-    
-    def underlying_length(self):
-        assert len(self._od) == len(self._li)
-        return len(self._od)
-    
-    def size(self):
-        # self._length() == (2 ** size + 1)
-        # _size_offset is there to ensure there will be a transparent color
-        # which is accounted for by __len__()
-        return self._length().bit_length() - 2 + self._size_offset
     
     def ensure_transparent_color(self):
         self._ensure_transparent = True

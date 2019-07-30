@@ -1,10 +1,13 @@
 from functools import reduce
 from itertools import repeat
 
-from . import misc
+from . import util
 
 
 class BitStream:
+    """
+    Represents an LZW bitstream used for compression
+    """
     def __init__(self):
         self._buffer = []
         self._out = bytearray()
@@ -15,10 +18,16 @@ class BitStream:
         return bytes(self._out)
     
     def _consume_byte(self):
-        self._out.append(reduce(lambda acc, bit: (acc << 1) | bit, self._buffer[7::-1]))
+        """
+        Consumes one byte from the buffer and appends it to the output stream
+        """
+        self._out.append(util.join_bits(self._buffer[7::-1]))
         del self._buffer[:8]
     
     def append(self, n, code_size):
+        """
+        Appends `n` to buffer bit-by-bit, padding to `code_size`
+        """
         fill = code_size - n.bit_length()
         while n:
             self._buffer.append(n % 2)
@@ -76,7 +85,14 @@ class CodeTable:
         self.out.append(self._eoi, self._code_size)
 
 
-def compress(color_indices, color_table, code_table=None):
+def compress(color_indices, color_table, code_table=None) -> bytes:
+    """
+    color_indices: iterable of `color_table` indices
+    color_table: classes.ColorTable object
+    code_table: optional, lzw.CodeTable object (automatically created if None)
+
+    LZW-compresses GIF colors
+    """
     if code_table is None:
         code_table = CodeTable(color_table)
     # XXX: all this tuple stuff feels really inefficient
