@@ -20,6 +20,7 @@ class GIF(MutableSequence):
     def __setitem__(self, idx, value):
         if not isinstance(value, Frame):
             value = self.create_frame(value)
+        self.update_dims(value.image_descriptor)
         self.images.__setitem__(idx, value)
     
     def __delitem__(self, idx):
@@ -29,10 +30,17 @@ class GIF(MutableSequence):
         return self.images.__len__()
     
     def insert(self, idx, value):
+        if not isinstance(value, Frame):
+            value = self.create_frame(value)
+        self.update_dims(value.image_descriptor)
         self.images.insert(idx, value)
     
     def create_frame(self, pixels):
         return Frame(pixels, self)
+    
+    def update_dims(self, image_descriptor):
+        self.logical_screen_descriptor.canvas_width = image_descriptor.width
+        self.logical_screen_descriptor.canvas_height = image_descriptor.height
 
 
 class Frame:
@@ -41,17 +49,17 @@ class Frame:
             pixels = np.array(pixels)
         if color_table is None:
             color_table = gif.global_color_table
+        self.color_table = color_table
+        self.pixels = pixels
+        self.colors = set(map(tuple, np.unique(self.pixels.reshape(-1, 3), axis=0)))
+        self.update_color_table()
         if color_indices is None:
             color_indices = np.apply_along_axis(
               lambda color: color_table[tuple(color)],
               2,
               pixels
             )
-        self.color_table = color_table
         self.color_indices = color_indices
-        self.pixels = pixels
-        self.colors = set(map(tuple, np.unique(self.pixels.reshape(-1, 3), axis=0)))
-        self.update_color_table()
         self.image_descriptor = classes.ImageDescriptor(*self.color_indices.shape)
         self.gif = gif
     
@@ -87,7 +95,7 @@ class Frame:
         )
     
     def compress(self):
-        data = lzw.compress(self.data.flat, self.color_table)
+        data = lzw.compress(self.pixels.flat, self.color_table)
         # XXX: does the data even need to be 2D after height/width are determined??
         # TODO XXX: what to do with compressed data
         raise NotImplementedError

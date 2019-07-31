@@ -39,7 +39,7 @@ class BitStream:
 
 class CodeTable:
     MAX_CODE_SIZE = 12
-
+    
     def __init__(self, color_table):
         self._d = {}
         self.min_code_size = max(2, min(self.MAX_CODE_SIZE, 1 + color_table.size()))

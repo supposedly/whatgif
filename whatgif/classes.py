@@ -7,7 +7,7 @@ from . import util
 
 class Header:
     __slots__ = 'version',
-
+    
     def __init__(self, version: str = b'89a'):
         if version != b'89a':
             raise ValueError('GIF versions other than 89a are unsupported')
