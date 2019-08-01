@@ -1,5 +1,5 @@
 from functools import reduce
-from itertools import repeat
+from itertools import repeat, islice
 
 from . import util
 
@@ -52,6 +52,19 @@ class CodeTable:
         for color_code in range(self._cur_code):
             self[color_code,] = color_code
         self.out = BitStream()
+    
+    def __bytes__(self):
+        # TODO: inefficient. fix.
+        ba = bytearray([self.min_code_size])
+        out = bytes(self.out)
+        # insert 0xff byte before every 255-byte run
+        for idx in range(255, len(out), 255):
+            ba.append(255)
+            ba.extend(out[idx-255:idx])
+        # insert amount of remaining bytes
+        ba.append(len(out) if len(out) < 255 else len(out) - idx)
+        ba.extend(out[idx:])
+        return bytes(ba)
     
     def __contains__(self, key):
         return self._d.__contains__(key)
@@ -108,4 +121,4 @@ def compress(color_indices, color_table, code_table=None) -> bytes:
         idx_buffer = k,
     code_table.output(idx_buffer)
     code_table.eoi()
-    return bytes(code_table.out)
+    return bytes(code_table)
