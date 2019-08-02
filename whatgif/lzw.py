@@ -54,17 +54,7 @@ class CodeTable:
         self.out = BitStream()
     
     def __bytes__(self):
-        # TODO: inefficient. fix.
-        ba = bytearray([self.min_code_size])
-        out = bytes(self.out)
-        # insert 0xff byte before every 255-byte run
-        for idx in range(255, len(out), 255):
-            ba.append(255)
-            ba.extend(out[idx-255:idx])
-        # insert amount of remaining bytes
-        ba.append(len(out) if len(out) < 255 else len(out) - idx)
-        ba.extend(out[idx:])
-        return bytes(ba)
+        return self.min_code_size.to_bytes(1, 'little') + util.subblockify(bytes(self.out))
     
     def __contains__(self, key):
         return self._d.__contains__(key)
