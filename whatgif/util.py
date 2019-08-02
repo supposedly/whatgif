@@ -36,3 +36,19 @@ def to_bin(n, pad=3) -> str:
     Converts `n` to a binary-number string, padded with `pad` no. of zeroes
     """
     return bin(n)[2:].zfill(pad)
+
+
+def subblockify(data: bytes) -> bytes:
+    """
+    Properly segments data into 255-byte-max sub-blocks.
+    """
+    # TODO: make less inefficient.
+    ba = bytearray()
+    # insert 0xff byte before every 255-byte run
+    for idx in range(255, len(data), 255):
+        ba.append(255)
+        ba.extend(data[idx-255:idx])
+    # insert amount of remaining bytes
+    ba.append(len(data) if len(data) < 255 else len(data) - idx)
+    ba.extend(data[idx:])
+    return bytes(ba)

@@ -210,30 +210,6 @@ class ColorTable:
         self._ensure_transparent = True
 
 
-class Extension:
-    INTRODUCER = b'\x21'
-    LABEL = b''
-
-    def __bytes__(self):
-        return self.INTRODUCER + self.LABEL
-
-
-class GraphicsControlExtension(Extension):
-    LABEL = b'\xf9'
-    
-    def __init__(self, delay_time, transparent_color_index):
-        self.field = GraphicsControlField()
-        self.delay_time = delay_time
-        self.transparent_color_index = transparent_color_index
-    
-    def __bytes__(self):
-        return super().__bytes__() + (
-          b'\x04'  # XXX: not sure if this should change
-          + struct.pack('BBB', int(self.field), self.delay_time, self.transparent_color_index)
-          + b'\x00'
-        )
-
-
 class ImageDescriptor:
     __slots__ = (
       'width',
@@ -267,11 +243,60 @@ class ImageDescriptor:
         )
 
 
+class Extension:
+    INTRODUCER = b'\x21'
+    LABEL = b''
+    BLOCK_SIZE = 0
+    
+    def __bytes__(self):
+        return b''.join([
+          self.INTRODUCER,
+          self.LABEL,
+          b'' if self.BLOCK_SIZE == 0 else self.BLOCK_SIZE.to_bytes(1, 'little')
+        ])
+
+
+class GraphicsControlExtension(Extension):
+    LABEL = b'\xf9'
+    BLOCK_SIZE = 4
+    
+    def __init__(self, delay_time, transparent_color_index):
+        self.field = GraphicsControlField()
+        self.delay_time = delay_time
+        self.transparent_color_index = transparent_color_index
+    
+    def __bytes__(self):
+        return super().__bytes__() + bytearray([
+          0x04,
+          int(self.field),
+          self.delay_time,
+          self.transparent_color_index,
+          0x00
+        ])
+
+
 class ApplicationExtension(Extension):
     LABEL = b'\xff'
+    BLOCK_SIZE = 11
+
+    IDENTIFIER = b''
+    AUTH_CODE = b''
+    
+    __slots__ = ()
+    
+    def __bytes__(self):
+        return b''.join([
+          super().__bytes__(),
+          (len(self.IDENTIFIER) + len(self.AUTH_CODE)).to_bytes(1, 'little'),
+          self.IDENTIFIER,
+          self.AUTH_CODE
+        ])
+
+
+class NetscapeApplicationExtension(ApplicationExtension):
     IDENTIFIER = b'NETSCAPE'
     AUTH_CODE = b'2.0'
-    
+
     __slots__ = 'loop_count',
     
     def __init__(self, loop_count: int = 0):
@@ -280,10 +305,100 @@ class ApplicationExtension(Extension):
     def __bytes__(self):
         return b''.join([
           super().__bytes__(),
-          self.IDENTIFIER,
-          self.AUTH_CODE,
-          b'\x03',  # XXX: unclear whether this should change based on loop_count's bit length
+          b'\x03',
           b'\x01',
-          struct.pack('<H', self.loop_count),
-          b'\x00',
+          self.loop_count.to_bytes(2, 'little'),
+          b'\x00'
         ])
+
+
+class PlainTextExtension(Extension):
+    LABEL = b'\x01'
+    BLOCK_SIZE = 12
+    
+    __slots__ = (
+      'text_left',
+      'text_right',
+      'grid_width',
+      'grid_height',
+      'char_cell_width',
+      'char_cell_height',
+      'text_fg_color_index',
+      'text_bg_color_index',
+      'data'
+    )
+
+    def __init__(self,
+      text_left: int,
+      text_right: int,
+      grid_width: int,
+      grid_height: int,
+      char_cell_width: int,
+      char_cell_height: int,
+      text_fg_color_index: int,
+      text_bg_color_index: int,
+      data: str = None
+    ):
+      self.text_left = text_left
+      self.text_right = text_right
+      self.grid_width = grid_width
+      self.grid_height = grid_height
+      self.char_cell_width = char_cell_width
+      self.char_cell_height = char_cell_height
+      self.text_fg_color_index = text_fg_color_index
+      self.text_bg_color_index = text_bg_color_index
+      self._data = data
+    
+    @property
+    def data(self):
+        return self._data.encode('ascii')
+    
+    @data.setter
+    def data(self, value):
+        if isinstance(value, (bytes, bytearray)):
+            self._data = value.decode('ascii')
+        elif isinstance(value, str):
+            self._data = value
+        else:
+            raise TypeError("Value must be bytes, bytearray, or str, not '{}'".format(type(value)))
+    
+    def __bytes__(self):
+        return b''.join([
+          super().__bytes__(),
+          struct.pack(
+            '<HHHHBBBB',
+            self.text_left,
+            self.text_right,
+            self.grid_width,
+            self.grid_height,
+            self.char_cell_width,
+            self.char_cell_height,
+            self.text_fg_color_index,
+            self.text_bg_color_index
+          ),
+          util.subblockify(self.data),
+          b'\x00'
+        ])
+
+
+class CommentExtension(Extension):
+    LABEL = b'\xfe'
+    
+    def __init__(self, data: str):
+        self._data = data
+    
+    @property
+    def data(self):
+        return self._data.encode('ascii')
+    
+    @data.setter
+    def data(self, value):
+        if isinstance(value, (bytes, bytearray)):
+            self._data = value.decode('ascii')
+        elif isinstance(value, str):
+            self._data = value
+        else:
+            raise TypeError("Value must be bytes, bytearray, or str, not '{}'".format(type(value)))
+    
+    def __bytes__(self):
+        return super().__bytes__() + util.subblockify(self.data) + b'\x00'
