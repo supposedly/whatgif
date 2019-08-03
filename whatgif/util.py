@@ -61,13 +61,6 @@ def proxy_slots_of(**kwargs):
         {attr name : attr's expected type}
     """
     def inner(cls):
-        cls_slots = set(getattr(cls, '__slots__', ()))
-        for attr_cls in kwargs.values():
-            if cls_slots.intersection(getattr(attr_cls, '__slots__', ())):
-                raise ValueError(
-                  'Conflicting attribute names found; cannot proxy slots'
-                  'of class {} to class {}'.format(attr_cls, cls)
-                )
         for attr_name, attr_cls in kwargs.items():
             for proxied_attr in getattr(attr_cls, '__slots__', ()):
                 setattr(cls, proxied_attr, property(
