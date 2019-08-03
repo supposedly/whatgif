@@ -114,6 +114,7 @@ class GraphicsControlField:
         )
 
 
+@proxy_slots_of(color_field=TableColorField)
 class LogicalScreenDescriptor:
     __slots__ = (
       'canvas_width',
@@ -122,7 +123,7 @@ class LogicalScreenDescriptor:
       'background_color_index',
       'pixel_aspect_ratio'
     )
-
+    
     def __init__(self,
       canvas_width: int = None,
       canvas_height: int = None,
@@ -148,6 +149,8 @@ class LogicalScreenDescriptor:
 
 class ColorTable:
     TRANSPARENT = object()
+
+    __slots__ = '_ensure_transparent', '_od', '_li', '_len'
 
     def __init__(self, iterable=()):
         self._ensure_transparent = False
@@ -225,6 +228,7 @@ class ColorTable:
         self._ensure_transparent = True
 
 
+@util.proxy_slots_of(color_field=ImageColorField)
 class ImageDescriptor:
     __slots__ = (
       'width',
@@ -273,6 +277,7 @@ class Extension:
         ])
 
 
+@util.proxy_slots_of(field=GraphicsControlField)
 class GraphicsControlExtension(Extension):
     LABEL = b'\xf9'
     BLOCK_SIZE = 4
@@ -283,15 +288,6 @@ class GraphicsControlExtension(Extension):
         self.field = GraphicsControlField()
         self.delay_time = delay_time
         self.transparent_color_index = transparent_color_index
-    
-    def __getattr__(self, name):
-        return getattr(self.field, name)
-    
-    def __setattr__(self, name, value):
-        if hasattr(self, name):
-            object.__setattr__(self, name, value)
-        else:
-            setattr(self.field, name, value)
     
     def __bytes__(self):
         return super().__bytes__() + bytearray([

@@ -52,3 +52,28 @@ def subblockify(data: bytes) -> bytes:
     ba.append(len(data) if len(data) < 255 else len(data) - idx)
     ba.extend(data[idx:])
     return bytes(ba)
+
+
+def proxy_slots_of(**kwargs):
+    """
+    Class decorator that adds property getter/setters corresponding
+    to the slots of a given class. Kwargs must be in this format:
+        {attr name : attr's expected type}
+    """
+    def inner(cls):
+        cls_slots = set(getattr(cls, '__slots__', ()))
+        for attr_cls in kwargs.values():
+            if cls_slots.intersect(getattr(attr_cls, '__slots__', ())):
+                raise ValueError(
+                  'Conflicting attribute names found; cannot proxy slots'
+                  'of class {} to class {}'.format(attr_cls, cls)
+                )
+        for attr_name, attr_cls in kwargs.items():
+            for proxied_attr in getattr(attr_cls, '__slots__', ()):
+                setattr(cls, attr_name, property(
+                  lambda self: getattr(getattr(self, attr_name), proxied_attr),
+                  lambda self, value: setattr(getattr(self, attr_name), proxied_attr, value),
+                  lambda self: delattr(getattr(self, attr_name), proxied_attr)
+                ))
+        return cls
+    return inner

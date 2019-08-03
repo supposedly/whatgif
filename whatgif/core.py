@@ -4,13 +4,14 @@ from collections.abc import MutableSequence
 
 import numpy as np
 
-from . import classes, lzw
+from . import classes, lzw, util
 
 
+@util.proxy_slots_of(logical_screen_descriptor=classes.LogicalScreenDescriptor)
 class GIF(MutableSequence):
-    def __init__(self, version: str = '89a', width: int = None, height: int = None):
+    def __init__(self, version: str = '89a', canvas_width: int = None, canvas_height: int = None):
         self.header = classes.Header(version)
-        self.logical_screen_descriptor = classes.LogicalScreenDescriptor(width, height)
+        self.logical_screen_descriptor = classes.LogicalScreenDescriptor(canvas_width, canvas_height)
         self.global_color_table = classes.ColorTable()
         self.images = []
     
@@ -39,12 +40,12 @@ class GIF(MutableSequence):
         return Frame(pixels, self)
     
     def update_dims(self, image_descriptor):
-        self.logical_screen_descriptor.canvas_width = image_descriptor.width
-        self.logical_screen_descriptor.canvas_height = image_descriptor.height
+        self.canvas_width = image_descriptor.width
+        self.canvas_height = image_descriptor.height
 
 
 class Frame:
-    def __init__(self, pixels, gif, *, color_table=None, color_indices=None):
+    def __init__(self, pixels, gif, graphics_control_extension=None, *, color_table=None, color_indices=None):
         if not isinstance(pixels, np.ndarray):
             pixels = np.array(pixels)
         if color_table is None:
@@ -61,6 +62,7 @@ class Frame:
             )
         self.color_indices = color_indices
         self.image_descriptor = classes.ImageDescriptor(*self.color_indices.shape)
+        self.graphics_control_extension = None
         self.gif = gif
     
     def __eq__(self, other):
@@ -87,7 +89,10 @@ class Frame:
     '''
     
     def __bytes__(self):
-        ...
+        return b''.join([
+          bytes(self.image_descriptor),
+          ...
+        ])
     
     def update_color_table(self):
         self.color_table.extend(
