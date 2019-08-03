@@ -80,20 +80,35 @@ class GraphicsControlField:
       'wait_for_user_input',
       'has_transparency'
     )
-
+    
+    DISPOSAL_METHODS = [None, 'accumulate', 'replace', 'restore']
+    _DISPOSAL_MAP = dict(map(reversed, enumerate(DISPOSAL_METHODS)))
+    
     def __init__(self,
-      disposal_method: int = 0,
+      disposal_method: str = None,
       wait_for_user_input: bool = False,
       has_transparency: bool = True
     ):
+        self._disposal_method = None
         self.disposal_method = disposal_method
         self.wait_for_user_input = wait_for_user_input
         self.has_transparency = has_transparency
     
+    @property
+    def disposal_method(self):
+        return self._DISPOSAL_MAP[self._disposal_method]
+    
+    @disposal_method.setter
+    def disposal_method(self, value):
+        try:
+            self._disposal_method = self.DISPOSAL_METHODS[value]
+        except KeyError:
+            raise ValueError("Invalid disposal method {}".format(value))
+    
     def __int__(self):
         return util.join_bits(
           0, 0, 0,  # 'reserved for future use'
-          *util.to_bin(self.disposal_method, 3),
+          *util.to_bin(self._disposal_method, 3),
           self.wait_for_user_input,
           self.has_transparency
         )
@@ -247,6 +262,8 @@ class Extension:
     INTRODUCER = b'\x21'
     LABEL = b''
     BLOCK_SIZE = 0
+
+    __slots__ = ()
     
     def __bytes__(self):
         return b''.join([
@@ -259,11 +276,22 @@ class Extension:
 class GraphicsControlExtension(Extension):
     LABEL = b'\xf9'
     BLOCK_SIZE = 4
+
+    __slots__ = 'field', 'delay_time', 'transparent_color_index'
     
     def __init__(self, delay_time, transparent_color_index):
         self.field = GraphicsControlField()
         self.delay_time = delay_time
         self.transparent_color_index = transparent_color_index
+    
+    def __getattr__(self, name):
+        return getattr(self.field, name)
+    
+    def __setattr__(self, name, value):
+        if hasattr(self, name):
+            object.__setattr__(self, name, value)
+        else:
+            setattr(self.field, name, value)
     
     def __bytes__(self):
         return super().__bytes__() + bytearray([
@@ -383,6 +411,8 @@ class PlainTextExtension(Extension):
 
 class CommentExtension(Extension):
     LABEL = b'\xfe'
+    
+    __slots__ = '_data',
     
     def __init__(self, data: str):
         self._data = data
