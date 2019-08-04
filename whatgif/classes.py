@@ -74,7 +74,7 @@ class ImageColorField:
         )
 
 
-class GraphicsControlField:
+class GraphicControlField:
     __slots__ = (
       '_disposal_method',
       'wait_for_user_input',
@@ -277,15 +277,15 @@ class Extension:
         ])
 
 
-@util.proxy('slots', 'properties', field=GraphicsControlField)
-class GraphicsControlExtension(Extension):
+@util.proxy('slots', 'properties', field=GraphicControlField)
+class GraphicControlExtension(Extension):
     LABEL = b'\xf9'
     BLOCK_SIZE = 4
 
     __slots__ = 'field', 'delay_time', 'transparent_color_index'
     
     def __init__(self, delay_time, transparent_color_index):
-        self.field = GraphicsControlField()
+        self.field = GraphicControlField()
         self.delay_time = delay_time
         self.transparent_color_index = transparent_color_index
     

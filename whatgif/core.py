@@ -55,9 +55,9 @@ class GIF(MutableSequence):
 
 
 @util.proxy('slots', image_descriptor=classes.ImageDescriptor)
-@util.proxy('slots', 'properties', _graphics_control_extension=classes.GraphicsControlExtension)
+@util.proxy('slots', 'properties', _graphic_control_extension=classes.GraphicControlExtension)
 class Frame:
-    def __init__(self, pixels, gif, graphics_control_extension=None, *, color_table=None, color_indices=None):
+    def __init__(self, pixels, gif, graphic_control_extension=None, *, color_table=None, color_indices=None):
         if not isinstance(pixels, np.ndarray):
             pixels = np.array(pixels)
         if color_table is None:
@@ -74,8 +74,8 @@ class Frame:
             )
         self.color_indices = color_indices
         self.image_descriptor = classes.ImageDescriptor(*self.color_indices.shape)
-        self._graphics_control_extension = classes.GraphicsControlExtension()
-        self.use_graphics_control_extension = False
+        self._graphic_control_extension = classes.GraphicControlExtension()
+        self.use_graphic_control_extension = False
         self.gif = gif
     
     def __eq__(self, other):
@@ -103,8 +103,8 @@ class Frame:
     
     def __bytes__(self):
         ba = bytearray()
-        if self.use_graphics_control_extension:
-            ba.extend(bytes(self._graphics_control_extension))
+        if self.use_graphic_control_extension:
+            ba.extend(bytes(self._graphic_control_extension))
         ba.extend(bytes(self.image_descriptor))
         ba.extend(lzw.compress(self.color_indices.flat, self.color_table))
     
