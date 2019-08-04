@@ -76,7 +76,7 @@ class ImageColorField:
 
 class GraphicsControlField:
     __slots__ = (
-      'disposal_method',
+      '_disposal_method',
       'wait_for_user_input',
       'has_transparency'
     )
@@ -349,7 +349,7 @@ class PlainTextExtension(Extension):
       'char_cell_height',
       'text_fg_color_index',
       'text_bg_color_index',
-      'data'
+      '_data'
     )
 
     def __init__(self,
