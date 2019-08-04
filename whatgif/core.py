@@ -7,7 +7,7 @@ import numpy as np
 from . import classes, lzw, util
 
 
-@util.proxy_slots_of(logical_screen_descriptor=classes.LogicalScreenDescriptor)
+@util.proxy('slots', logical_screen_descriptor=classes.LogicalScreenDescriptor)
 class GIF(MutableSequence):
     def __init__(self, version: str = '89a', canvas_width: int = None, canvas_height: int = None):
         self.header = classes.Header(version)
@@ -44,6 +44,8 @@ class GIF(MutableSequence):
         self.canvas_height = image_descriptor.height
 
 
+@util.proxy('slots', image_descriptor=classes.ImageDescriptor)
+@util.proxy('slots', 'properties', _graphics_control_extension=classes.GraphicsControlExtension)
 class Frame:
     def __init__(self, pixels, gif, graphics_control_extension=None, *, color_table=None, color_indices=None):
         if not isinstance(pixels, np.ndarray):
@@ -62,7 +64,8 @@ class Frame:
             )
         self.color_indices = color_indices
         self.image_descriptor = classes.ImageDescriptor(*self.color_indices.shape)
-        self.graphics_control_extension = None
+        self._graphics_control_extension = classes.GraphicsControlExtension()
+        self.use_graphics_control_extension = False
         self.gif = gif
     
     def __eq__(self, other):

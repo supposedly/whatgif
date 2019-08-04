@@ -1,4 +1,6 @@
-from functools import partial, reduce
+import inspect
+from functools import partial, reduce, wraps
+from operator import attrgetter
 
 
 def next_po2(n) -> int:
@@ -54,22 +56,64 @@ def subblockify(data: bytes) -> bytes:
     return bytes(ba)
 
 
-def proxy_slots_of(**kwargs):
+def proxy(*what, **kwargs):
     """
     Class decorator that adds property getter/setters corresponding
-    to the slots of a given class. Kwargs must be in this format:
+    to the slots of a given class.
+    Kwargs must be in this format:
         {attr name : attr's expected type}
+    Positional args consist of the strings 'properties' and 'slots',
+    whose presence indicates that they should be proxied.
     """
+    what = set(map(str.casefold, what))
+    slots, properties = 'slots' in what, 'properties' in what
     def inner(cls):
         for attr_name, attr_cls in kwargs.items():
-            for proxied_attr in getattr(attr_cls, '__slots__', ()):
-                setattr(cls, proxied_attr, property(
-                  partial(_proxy_getf, attr_name, proxied_attr),
-                  partial(_proxy_setf, attr_name, proxied_attr),
-                  partial(_proxy_delf, attr_name, proxied_attr),
-                ))
+            if properties:
+                for proxied_prop_name, proxied_prop in inspect.getmembers(attr_cls, property.__instancecheck__):
+                    setattr(cls, proxied_prop_name, property(
+                        transformative_partial(proxied_prop.__get__, attrgetter(attr_name)),
+                        transformative_partial(proxied_prop.__set__, attrgetter(attr_name), None),
+                        transformative_partial(proxied_prop.__delete__, attrgetter(attr_name))
+                    ))
+            if slots:
+                for proxied_attr in getattr(attr_cls, '__slots__', ()):
+                    setattr(cls, proxied_attr, property(
+                      partial(_proxy_getf, attr_name, proxied_attr),
+                      partial(_proxy_setf, attr_name, proxied_attr),
+                      partial(_proxy_delf, attr_name, proxied_attr),
+                    ))
         return cls
     return inner
+
+
+def transformative_partial(func, *transformers, **kw_transformers):
+    """
+    Each argument given should line up with a parameter of `func`. If not None,
+    it will be called on the corresponding argument of `func` before said argument
+    is passed to it.
+    
+    After I wrote this I realized it was basically a worse (but syntactically
+    less-hacky) version of the typehint transformer I use in ergo. May replace
+    this with that later.
+    """
+    if not callable(func):
+        raise TypeError('First argument must be callable')
+    if not all(map(callable, {*transformers, *kw_transformers.values()} - {None})):
+        raise ValueError('All transformers must be callable or None')
+    #TODO: check varargs' lengths against number of params func takes
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        args = [
+          arg if transformer is None else transformer(arg)
+          for transformer, arg in zip(transformers, args)
+        ]
+        kwargs = {
+          name: arg if transformer is None else transformer(arg)
+          for transformer, name, arg in zip(kw_transformers, kwargs.keys(), kwargs.values())
+        }
+        return func(*args, **kwargs)
+    return wrapper
 
 
 def _proxy_getf(attr_name, proxied_attr, self):

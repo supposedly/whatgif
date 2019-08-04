@@ -114,7 +114,7 @@ class GraphicsControlField:
         )
 
 
-@proxy_slots_of(color_field=TableColorField)
+@util.proxy('slots', color_field=TableColorField)
 class LogicalScreenDescriptor:
     __slots__ = (
       'canvas_width',
@@ -228,7 +228,7 @@ class ColorTable:
         self._ensure_transparent = True
 
 
-@util.proxy_slots_of(color_field=ImageColorField)
+@util.proxy('slots', color_field=ImageColorField)
 class ImageDescriptor:
     __slots__ = (
       'width',
@@ -277,7 +277,7 @@ class Extension:
         ])
 
 
-@util.proxy_slots_of(field=GraphicsControlField)
+@util.proxy('slots', 'properties', field=GraphicsControlField)
 class GraphicsControlExtension(Extension):
     LABEL = b'\xf9'
     BLOCK_SIZE = 4
