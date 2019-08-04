@@ -15,6 +15,16 @@ class GIF(MutableSequence):
         self.global_color_table = classes.ColorTable()
         self.images = []
     
+    def __bytes__(self):
+        return b''.join([
+          bytes(self.header),
+          bytes(self.logical_screen_descriptor),
+          self.global_color_table,
+          ####TODO: APPLCIATION EXTENSION BLOCK,
+          *map(bytes, self),
+          '\x3b'
+        ])
+    
     def __getitem__(self, idx):
         return self.images.__getitem__(idx)
     
@@ -92,18 +102,13 @@ class Frame:
     '''
     
     def __bytes__(self):
-        return b''.join([
-          bytes(self.image_descriptor),
-          ...
-        ])
+        ba = bytearray()
+        if self.use_graphics_control_extension:
+            ba.extend(bytes(self._graphics_control_extension))
+        ba.extend(bytes(self.image_descriptor))
+        ba.extend(lzw.compress(self.color_indices.flat, self.color_table))
     
     def update_color_table(self):
         self.color_table.extend(
           self.colors.difference(self.color_table)
         )
-    
-    def compress(self):
-        data = lzw.compress(self.pixels.flat, self.color_table)
-        # XXX: does the data even need to be 2D after height/width are determined??
-        # TODO XXX: what to do with compressed data
-        raise NotImplementedError
