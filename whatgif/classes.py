@@ -6,6 +6,10 @@ from . import util
 
 
 class Header:
+    """
+    Implements the GIF Header block.
+    More or less deadweight.
+    """
     __slots__ = 'version',
     
     def __init__(self, version: str = b'89a'):
@@ -18,6 +22,10 @@ class Header:
 
 
 class TableColorField:
+    """
+    Implements the packed field to do with color used by the Logical
+    Screen Descriptor block.
+    """
     __slots__ = (
       'has_global_color_table',
       'color_resolution',
@@ -46,6 +54,10 @@ class TableColorField:
 
 
 class ImageColorField:
+    """
+    Implements the packed field to do with color used by the Image
+    Descriptor block.
+    """
     __slots__ = (
       'has_local_color_table',
       'interlace',
@@ -75,6 +87,10 @@ class ImageColorField:
 
 
 class GraphicControlField:
+    """
+    Implements the packed field used by the Graphic Control Extension.
+    NB: "wait_for_user_input" isn't a flag typically paid attention to.
+    """
     __slots__ = (
       '_disposal_method',
       'wait_for_user_input',
@@ -116,6 +132,10 @@ class GraphicControlField:
 
 @util.proxy('slots', color_field=TableColorField)
 class LogicalScreenDescriptor:
+    """
+    Implements the Logical Screen Descriptor block, used to set various
+    attributes of the GIF file as a whole.
+    """
     __slots__ = (
       'canvas_width',
       'canvas_height',
@@ -148,6 +168,15 @@ class LogicalScreenDescriptor:
 
 
 class ColorTable:
+    """
+    Implements global and local color tables. Colors are stored
+    in order of insertion as (r, g, b) tuples; filler (0, 0, 0)
+    tuples are used to pad the table to the nearest po2 length.
+
+    `_ensure_transparent` indicates whether to ensure that there
+    is always room for an extra transparent color -- that is, to
+    ensure that the table always an unused color slot.
+    """
     TRANSPARENT = object()
 
     __slots__ = '_ensure_transparent', '_od', '_li', '_len'
@@ -230,6 +259,10 @@ class ColorTable:
 
 @util.proxy('slots', color_field=ImageColorField)
 class ImageDescriptor:
+    """
+    Implements the Image Descriptor block, used for... describing an
+    image.
+    """
     __slots__ = (
       'width',
       'height',
@@ -263,6 +296,11 @@ class ImageDescriptor:
 
 
 class Extension:
+    """
+    Base class for GIF-format extensions.
+    Subclasses must define class variables "LABEL" and "BLOCK_SIZE"
+    with the appropriate `bytes` value and int value, respectively.
+    """
     INTRODUCER = b'\x21'
     LABEL = b''
     BLOCK_SIZE = 0
@@ -279,6 +317,11 @@ class Extension:
 
 @util.proxy('slots', 'properties', field=GraphicControlField)
 class GraphicControlExtension(Extension):
+    """
+    Implements the Graphic Control extension, used for specifying
+    various behaviors/properties of the next frame relating to
+    graphics.
+    """
     LABEL = b'\xf9'
     BLOCK_SIZE = 4
 
@@ -300,6 +343,14 @@ class GraphicControlExtension(Extension):
 
 
 class ApplicationExtension(Extension):
+    """
+    Base class for Application extensions, used for implementing
+    application-specific extra functionality.
+    Subclasses must define class variables IDENTIFIER and AUTH_CODE
+    with the appropriate `bytes` values. (Note that there is really
+    only one possible subclass, b/c not many Application extensions
+    exist besides the Netscape Looping Application Extension below)
+    """
     LABEL = b'\xff'
     BLOCK_SIZE = 11
 
@@ -318,6 +369,10 @@ class ApplicationExtension(Extension):
 
 
 class NetscapeApplicationExtension(ApplicationExtension):
+    """
+    Implements the Netscape Looping Application Extension, used to
+    set the amount of times a GIF should loop.
+    """
     IDENTIFIER = b'NETSCAPE'
     AUTH_CODE = b'2.0'
 
@@ -329,14 +384,20 @@ class NetscapeApplicationExtension(ApplicationExtension):
     def __bytes__(self):
         return b''.join([
           super().__bytes__(),
-          b'\x03',
-          b'\x01',
+          b'\x03',  # size of subsequent block
+          b'\x01',  # 'subblock identifier', fixed value
           self.loop_count.to_bytes(2, 'little'),
           b'\x00'
         ])
 
 
 class PlainTextExtension(Extension):
+    """
+    Implements the Plain Text extension, used for rendering text rather
+    than displaying an image on a given frame.
+    NB: class included solely for spec-completeness. Not a single one
+    of today's popular GIF-viewing apps implements this PT extension.
+    """
     LABEL = b'\x01'
     BLOCK_SIZE = 12
     
@@ -406,6 +467,10 @@ class PlainTextExtension(Extension):
 
 
 class CommentExtension(Extension):
+    """
+    Implements the Comment Extension, used for including comments
+    unseen in the final GIF.
+    """
     LABEL = b'\xfe'
     
     __slots__ = '_data',
