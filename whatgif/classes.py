@@ -28,28 +28,28 @@ class TableColorField:
       'has_global_color_table',
       'color_resolution',
       'sort',
-      'size'
+      'global_color_table_size'
     )
     
     def __init__(self,
       has_global_color_table: bool = True,
       color_resolution: int = 1,
       sort: bool = False,
-      size: int = None
+      global_color_table_size: int = None
     ):
         self.has_global_color_table = has_global_color_table
         self.color_resolution = color_resolution
         self.sort = sort
-        self.size = size
+        self.global_color_table_size = global_color_table_size
     
     def __int__(self):
         util.check_null_slots(self)
-        return util.join_bits(
+        return util.join_bits((
           self.has_global_color_table,
           *util.to_bin(self.color_resolution, 3),
           self.sort,
-          *util.to_bin(self.size, 3)
-        )
+          *util.to_bin(self.global_color_table_size, 3)
+        ))
 
 
 class ImageColorField:
@@ -76,13 +76,13 @@ class ImageColorField:
         self.local_color_table_size = local_color_table_size
     
     def __int__(self):
-        return util.join_bits(
+        return util.join_bits((
           self.has_local_color_table,
           self.interlace,
           self.sort,
           0, 0,  # 'reserved for future use'
           *util.to_bin(self.local_color_table_size, 3)
-        )
+        ))
 
 
 class GraphicControlField:
@@ -104,29 +104,29 @@ class GraphicControlField:
       wait_for_user_input: bool = False,
       has_transparency: bool = True
     ):
-        self._disposal_method = None
+        self._disposal_method = 0
         self.disposal_method = disposal_method
         self.wait_for_user_input = wait_for_user_input
         self.has_transparency = has_transparency
     
     @property
     def disposal_method(self):
-        return self._DISPOSAL_MAP[self._disposal_method]
+        return self.DISPOSAL_METHODS[self._disposal_method]
     
     @disposal_method.setter
     def disposal_method(self, value):
         try:
-            self._disposal_method = self.DISPOSAL_METHODS[value]
+            self._disposal_method = self._DISPOSAL_MAP[value]
         except KeyError:
             raise ValueError("Invalid disposal method {}".format(value))
     
     def __int__(self):
-        return util.join_bits(
+        return util.join_bits((
           0, 0, 0,  # 'reserved for future use'
           *util.to_bin(self._disposal_method, 3),
           self.wait_for_user_input,
           self.has_transparency
-        )
+        ))
 
 
 @util.proxy('slots', color_field=TableColorField)
@@ -233,7 +233,7 @@ class ColorTable:
             return
         if len(color) != 3 or not (0, 0, 0) <= color < (256, 256, 256):
             raise ValueError('Color-table values must be a single-byte-each RGB tuple')
-        if color in self:
+        if color in self._od:
             raise ValueError('Color {} already exists with code {}'.format(
               color, self[color]
             ))
