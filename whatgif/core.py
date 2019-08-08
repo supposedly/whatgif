@@ -9,20 +9,30 @@ from . import classes, lzw, util
 
 @util.proxy('slots', logical_screen_descriptor=classes.LogicalScreenDescriptor)
 class GIF(MutableSequence):
-    def __init__(self, version: str = '89a', canvas_width: int = None, canvas_height: int = None):
+    def __init__(self,
+      loop_count: int = 0,
+      *,
+      version: str = '89a',
+      delay_time: int = 0,
+      canvas_width: int = None,
+      canvas_height: int = None
+    ):
         self.header = classes.Header(version)
         self.logical_screen_descriptor = classes.LogicalScreenDescriptor(canvas_width, canvas_height)
         self.global_color_table = classes.ColorTable()
+        self.netscape_looping_extension = classes.NetscapeApplicationExtension(loop_count)
+        
         self.images = []
+        self.global_delay_time = delay_time
     
     def __bytes__(self):
         return b''.join([
           bytes(self.header),
           bytes(self.logical_screen_descriptor),
           self.global_color_table,
-          ####TODO: APPLCIATION EXTENSION BLOCK,
+          self.netscape_looping_extension,
           *map(bytes, self),
-          '\x3b'
+          b'\x3b'
         ])
     
     def __getitem__(self, idx):
@@ -46,8 +56,22 @@ class GIF(MutableSequence):
         self.update_dims(value.image_descriptor)
         self.images.insert(idx, value)
     
-    def create_frame(self, pixels):
-        return Frame(pixels, self)
+    def create_frame(self, pixels, delay_time=None, *, transparent_color_index=None):
+        if delay_time is None:
+            delay_time = self.global_delay_time
+        elif delay_time == self.global_delay_time:
+            delay_time = None
+        if transparent_color_index is None:
+            transparent_color_index = self.global_color_table.transparent_color_index
+        elif transparent_color_index == self.global_color_table.transparent_color_index:
+            transparent_color_index = None
+        
+        return Frame(
+          pixels,
+          self,
+          delay_time=delay_time,
+          transparent_color_index=transparent_color_index
+        )
     
     def update_dims(self, image_descriptor):
         self.canvas_width = image_descriptor.width
@@ -57,7 +81,16 @@ class GIF(MutableSequence):
 @util.proxy('slots', image_descriptor=classes.ImageDescriptor)
 @util.proxy('slots', 'properties', _graphic_control_extension=classes.GraphicControlExtension)
 class Frame:
-    def __init__(self, pixels, gif, graphic_control_extension=None, *, color_table=None, color_indices=None):
+    def __init__(self,
+      pixels,
+      gif,
+      graphic_control_extension=None,
+      *,
+      color_table=None,
+      color_indices=None,
+      delay_time=None,
+      transparent_color_index=None
+    ):
         if not isinstance(pixels, np.ndarray):
             pixels = np.array(pixels)
         if color_table is None:
@@ -74,8 +107,8 @@ class Frame:
             )
         self.color_indices = color_indices
         self.image_descriptor = classes.ImageDescriptor(*self.color_indices.shape)
-        self._graphic_control_extension = classes.GraphicControlExtension()
-        self.use_graphic_control_extension = False
+        self._graphic_control_extension = classes.GraphicControlExtension(delay_time, transparent_color_index)
+        self.use_graphic_control_extension = delay_time != None or transparent_color_index != None
         self.gif = gif
     
     def __eq__(self, other):
@@ -96,8 +129,8 @@ class Frame:
         cols, rows = eq.all(0).argmin(), eq.all(1).argmin()
         self.color_indices = self.color_indices[rows:, cols:]
         self.pixels = self.pixels[rows:, cols:]
-        self.image_descriptor.left = cols
-        self.image_descriptor.top = rows
+        self.left = cols
+        self.top = rows
         return self
     '''
     
