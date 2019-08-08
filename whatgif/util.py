@@ -45,7 +45,7 @@ def subblockify(data: bytes) -> bytes:
     Properly segments data into 255-byte-max sub-blocks.
     """
     # TODO: make less inefficient.
-    ba = bytearray()
+    ba, idx = bytearray(), 0
     # insert 0xff byte before every 255-byte run
     for idx in range(255, len(data), 255):
         ba.append(255)
@@ -127,7 +127,7 @@ def _proxy_getf(attr_name, proxied_attr, self):
 
 
 def _proxy_setf(attr_name, proxied_attr, self, value):
-    setattr(getattr(self, attr_name), proxied_attr)
+    setattr(getattr(self, attr_name), proxied_attr, value)
 
 
 def _proxy_delf(attr_name, proxied_attr, self):
