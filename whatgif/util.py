@@ -56,6 +56,12 @@ def subblockify(data: bytes) -> bytes:
     return bytes(ba)
 
 
+def check_null_slots(obj) -> None:
+    for attr in obj.__slots__:
+        if getattr(obj, attr) is None:
+            raise ValueError('Please set {} attribute of {.__class__.__name__}'.format(attr, obj))
+
+
 def proxy(*what, **kwargs):
     """
     Class decorator that adds property getter/setters corresponding

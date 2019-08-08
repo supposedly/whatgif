@@ -12,9 +12,7 @@ class Header:
     """
     __slots__ = 'version',
     
-    def __init__(self, version: str = b'89a'):
-        if version != b'89a':
-            raise ValueError('GIF versions other than 89a are unsupported')
+    def __init__(self, version: bytes = b'89a'):
         self.version = version
     
     def __bytes__(self):
@@ -32,11 +30,11 @@ class TableColorField:
       'sort',
       'size'
     )
-
+    
     def __init__(self,
-      has_global_color_table: bool = None,
-      color_resolution: int = None,
-      sort: bool = None,
+      has_global_color_table: bool = True,
+      color_resolution: int = 1,
+      sort: bool = False,
       size: int = None
     ):
         self.has_global_color_table = has_global_color_table
@@ -45,6 +43,7 @@ class TableColorField:
         self.size = size
     
     def __int__(self):
+        util.check_null_slots(self)
         return util.join_bits(
           self.has_global_color_table,
           *util.to_bin(self.color_resolution, 3),
@@ -158,6 +157,7 @@ class LogicalScreenDescriptor:
         self.pixel_aspect_ratio = pixel_aspect_ratio
     
     def __bytes__(self):
+        util.check_null_slots(self)
         return struct.pack('<HHBBB',
           self.canvas_width,
           self.canvas_height,
