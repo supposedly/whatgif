@@ -362,7 +362,6 @@ class ApplicationExtension(Extension):
     def __bytes__(self):
         return b''.join([
           super().__bytes__(),
-          (len(self.IDENTIFIER) + len(self.AUTH_CODE)).to_bytes(1, 'little'),
           self.IDENTIFIER,
           self.AUTH_CODE
         ])
@@ -461,8 +460,7 @@ class PlainTextExtension(Extension):
             self.text_fg_color_index,
             self.text_bg_color_index
           ),
-          util.subblockify(self.data),
-          b'\x00'
+          util.subblockify(self.data)
         ])
 
 
@@ -492,4 +490,4 @@ class CommentExtension(Extension):
             raise TypeError("Value must be bytes, bytearray, or str, not '{}'".format(type(value)))
     
     def __bytes__(self):
-        return super().__bytes__() + util.subblockify(self.data) + b'\x00'
+        return super().__bytes__() + util.subblockify(self.data)

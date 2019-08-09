@@ -40,9 +40,10 @@ def to_bin(n, pad=3) -> str:
     return bin(n)[2:].zfill(pad)
 
 
-def subblockify(data: bytes) -> bytes:
+def subblockify(data: bytes, terminate: bool = True) -> bytes:
     """
     Properly segments data into 255-byte-max sub-blocks.
+    `terminate` indicates whether to end with a 0x00 terminator.
     """
     # TODO: make less inefficient.
     ba, idx = bytearray(), 0
@@ -53,6 +54,8 @@ def subblockify(data: bytes) -> bytes:
     # insert amount of remaining bytes
     ba.append(len(data) if len(data) < 255 else len(data) - idx)
     ba.extend(data[idx:])
+    if terminate:
+        ba.append(0x00)
     return bytes(ba)
 
 

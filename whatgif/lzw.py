@@ -1,5 +1,5 @@
 from functools import reduce
-from itertools import repeat, islice
+from itertools import islice, repeat
 
 from . import util
 
