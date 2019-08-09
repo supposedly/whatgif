@@ -91,6 +91,13 @@ class GIF(MutableSequence):
     
     def update_color_table_size(self):
         self.global_color_table_size = self.global_color_table.size()
+    
+    def difference_compress(self):
+        if not self:
+            return
+        prev = self[0]
+        for cur in self[1:]:
+            prev %= cur
 
 
 @util.proxy('slots', image_descriptor=classes.ImageDescriptor)
@@ -133,7 +140,6 @@ class Frame:
             return NotImplemented
         return (self.pixels == other.pixels).all(2)
     
-    '''
     def __imod__(self, other):
         if not isinstance(other, Frame):
             return NotImplemented
@@ -149,7 +155,6 @@ class Frame:
         self.left = cols
         self.top = rows
         return self
-    '''
     
     def __bytes__(self):
         ba = bytearray()
